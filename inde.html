@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Minimal Shooter Game</title>
+    <style>
+        body { background: #1a1a1a; color: white; text-align: center; font-family: sans-serif; overflow: hidden; margin: 0; }
+        #game-container { position: relative; width: 400px; height: 600px; margin: 20px auto; border: 2px solid #333; background: #000; overflow: hidden; }
+        /* プレイヤー（手で操作する意志） */
+        #player { position: absolute; bottom: 20px; left: 175px; width: 50px; height: 50px; background: #2ed573; border-radius: 10px; z-index: 10; }
+        /* 敵（脳で認識し、倒すべき対象） */
+        .enemy { position: absolute; top: -50px; width: 40px; height: 40px; background: #ff4755; border-radius: 50%; box-shadow: 0 0 10px #ff4755; }
+        /* 弾（手の実行結果） */
+        .bullet { position: absolute; width: 8px; height: 20px; background: #47b2ff; border-radius: 4px; box-shadow: 0 0 8px #47b2ff; }
+        #score { font-size: 24px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <div id="game-container">
+        <div id="player"></div>
+    </div>
+    <p>左右キーで移動、スペースキーで発射！</p>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const player = document.getElementById('player');
+        const scoreElement = document.getElementById('score');
+        let score = 0;
+        let playerX = 175;
+        let enemies = [];
+        let bullets = [];
+
+        // プレイヤーの移動
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' && playerX > 0) {
+                playerX -= 10;
+            } else if (e.key === 'ArrowRight' && playerX < 350) {
+                playerX += 10;
+            }
+            player.style.left = playerX + 'px';
+        });
+
+        // 弾の発射（手の実行）
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ') {
+                const bullet = document.createElement('div');
+                bullet.className = 'bullet';
+                bullet.style.left = (playerX + 21) + 'px'; // プレイヤーの中心から
+                bullet.style.bottom = '70px';
+                container.appendChild(bullet);
+                bullets.push({ el: bullet, y: 70, x: playerX + 21 });
+            }
+        });
+
+        // 敵の生成（脳への刺激：予測と脅威）
+        setInterval(() => {
+            const enemy = document.createElement('div');
+            enemy.className = 'enemy';
+            enemy.style.left = Math.random() * 360 + 'px'; // ランダムな位置
+            container.appendChild(enemy);
+            enemies.push({ el: enemy, y: -50, x: parseFloat(enemy.style.left) });
+        }, 1500); // 1.5秒おきに生成
+
+        // ゲームループ
+        function update() {
+            // 弾の移動
+            bullets.forEach((bullet, bIndex) => {
+                bullet.y += 8;
+                bullet.el.style.bottom = bullet.y + 'px';
+                if (bullet.y > 600) { // 画面外に出たら削除
+                    bullet.el.remove();
+                    bullets.splice(bIndex, 1);
+                }
+            });
+
+            // 敵の移動と当たり判定（目と脳の処理）
+            enemies.forEach((enemy, eIndex) => {
+                enemy.y += 2; // 敵の落下速度
+                enemy.el.style.top = enemy.y + 'px';
+
+                // 弾との当たり判定
+                bullets.forEach((bullet, bIndex) => {
+                    if (
+                        bullet.x < enemy.x + 40 &&
+                        bullet.x + 8 > enemy.x &&
+                        bullet.y < enemy.y + 40 &&
+                        bullet.y + 20 > enemy.y
+                    ) {
+                        // ヒット！
+                        score += 10;
+                        scoreElement.innerText = `Score: ${score}`;
+                        enemy.el.remove();
+                        enemies.splice(eIndex, 1);
+                        bullet.el.remove();
+                        bullets.splice(bIndex, 1);
+                    }
+                });
+
+                if (enemy.y > 600) { // 画面下まで到達したら削除（ゲームオーバー処理は今回はなし）
+                    enemy.el.remove();
+                    enemies.splice(eIndex, 1);
+                }
+            });
+
+            requestAnimationFrame(update);
+        }
+        update();
+    </script>
+</body>
+</html>
